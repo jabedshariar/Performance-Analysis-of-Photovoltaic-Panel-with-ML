@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DIU Robotics Club - Member Directory</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <style>
         :root {
             --cyan: #00FFFF;
@@ -27,6 +26,9 @@
             background-color: var(--light-bg);
             color: var(--black);
             overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
         
         .container {
@@ -63,10 +65,6 @@
             display: flex;
             align-items: center;
             gap: 10px;
-        }
-        
-        .logo img {
-            height: 50px;
         }
         
         .logo-text {
@@ -213,9 +211,10 @@
             border-color: var(--royal-blue);
         }
         
-        /* Members Grid */
+        /* Members Section */
         .members-section {
             padding: 40px 0;
+            flex-grow: 1;
         }
         
         .section-title {
@@ -329,6 +328,13 @@
             margin: 20px 0;
         }
         
+        .data-info {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--royal-blue);
+            font-style: italic;
+        }
+        
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -339,6 +345,7 @@
             background: linear-gradient(135deg, var(--indigo), var(--black));
             color: white;
             padding: 40px 0 20px;
+            margin-top: auto;
         }
         
         .footer-content {
@@ -493,9 +500,9 @@
             <div class="filters">
                 <button class="filter-btn active" data-filter="all">All Members</button>
                 <button class="filter-btn" data-filter="CSE">CSE</button>
+                <button class="filter-btn" data-filter="SWE">SWE</button>
                 <button class="filter-btn" data-filter="EEE">EEE</button>
-                <button class="filter-btn" data-filter="ME">ME</button>
-                <button class="filter-btn" data-filter="CE">CE</button>
+                <button class="filter-btn" data-filter="BBA">BBA</button>
             </div>
         </div>
     </section>
@@ -504,6 +511,7 @@
     <section class="members-section">
         <div class="container">
             <h2 class="section-title">Our Members</h2>
+            <div id="dataInfo" class="data-info" style="display: none;"></div>
             <div id="loadingState" class="loading">
                 <i class="fas fa-robot"></i>
                 <p>Loading member data from Google Sheets...</p>
@@ -560,97 +568,168 @@
     </footer>
 
     <script>
-        // Google Sheets URL
+        // Google Sheets CSV URL
         const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSlQNWxF-RzYyzRgHUF0bjpTHSXreykh4S_BIW-u_6Au6ge-V4B-e5547bfNNNYyw/pub?output=csv";
-        
-        // Function to extract CSV URL from the published HTML
-        function getCSVUrl() {
-            // For Google Sheets published as HTML, we need to get the CSV export URL
-            // This is a workaround since direct CSV export might not be available
-            // In a real implementation, you would publish the sheet as CSV
-            return "https://docs.google.com/spreadsheets/d/e/2PACX-1vSlQNWxF-RzYyzRgHUF0bjpTHSXreykh4S_BIW-u_6Au6ge-V4B-e5547bfNNNYyw/pub?output=csv";
-        }
         
         // Function to fetch and parse data from Google Sheets
         async function fetchMemberData() {
             const loadingElement = document.getElementById('loadingState');
             const errorElement = document.getElementById('errorState');
             const membersGrid = document.getElementById('membersGrid');
+            const dataInfo = document.getElementById('dataInfo');
             
             try {
                 // Show loading state
                 loadingElement.style.display = 'block';
                 errorElement.style.display = 'none';
+                dataInfo.style.display = 'none';
                 membersGrid.innerHTML = '';
                 
-                // Fetch data from Google Sheets CSV
-                const csvUrl = getCSVUrl();
-                const response = await fetch(csvUrl);
+                console.log('Fetching data from:', SHEET_URL);
+                
+                // Fetch data from Google Sheets CSV with cache busting
+                const timestamp = new Date().getTime();
+                const response = await fetch(`${SHEET_URL}&t=${timestamp}`);
                 
                 if (!response.ok) {
-                    throw new Error(`Failed to fetch data: ${response.status}`);
+                    throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
                 }
                 
                 const csvText = await response.text();
+                console.log('Raw CSV data:', csvText);
                 
-                // Parse CSV data
-                Papa.parse(csvText, {
-                    header: true,
-                    skipEmptyLines: true,
-                    complete: function(results) {
-                        if (results.errors.length > 0) {
-                            console.warn('CSV parsing warnings:', results.errors);
-                        }
-                        
-                        // Process the data
-                        const members = processMemberData(results.data);
-                        
-                        // Generate member cards
-                        generateMemberCards(members);
-                        
-                        // Hide loading state
-                        loadingElement.style.display = 'none';
-                    },
-                    error: function(error) {
-                        throw new Error(`CSV parsing error: ${error.message}`);
-                    }
-                });
+                if (!csvText || csvText.trim().length === 0) {
+                    throw new Error('CSV file is empty');
+                }
+                
+                // Parse CSV data manually (simple approach)
+                const members = parseCSVData(csvText);
+                console.log('Parsed members:', members);
+                
+                if (members.length === 0) {
+                    throw new Error('No valid member data found in CSV');
+                }
+                
+                // Store the member data globally
+                window.memberData = members;
+                
+                // Generate member cards
+                generateMemberCards(members);
+                
+                // Show data info
+                dataInfo.textContent = `Showing ${members.length} members`;
+                dataInfo.style.display = 'block';
+                
+                // Hide loading state
+                loadingElement.style.display = 'none';
                 
             } catch (error) {
                 console.error('Error fetching member data:', error);
                 loadingElement.style.display = 'none';
                 errorElement.style.display = 'block';
+                errorElement.innerHTML = `
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Could not load data from Google Sheets.</p>
+                    <p><small>Error: ${error.message}</small></p>
+                    <p><small>Check the console for more details.</small></p>
+                `;
                 
                 // Fallback to sample data if fetch fails
                 const fallbackMembers = getFallbackMembers();
+                window.memberData = fallbackMembers;
                 generateMemberCards(fallbackMembers);
-                errorElement.innerHTML = `
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <p>Could not load live data. Showing sample data instead.</p>
-                    <p><small>Error: ${error.message}</small></p>
-                `;
+                dataInfo.textContent = `Showing sample data (${fallbackMembers.length} members) - Could not load from Google Sheets`;
+                dataInfo.style.display = 'block';
             }
         }
         
-        // Function to process raw data from Google Sheets
-        function processMemberData(rawData) {
-            // This function will map the Google Sheets columns to our expected format
-            // You may need to adjust this based on the actual column names in your sheet
+        // Function to parse CSV data manually
+        function parseCSVData(csvText) {
+            const lines = csvText.split('\n').filter(line => line.trim() !== '');
             
-            return rawData.map((row, index) => {
-                // Try to extract data based on common column name patterns
-                const name = row.Name || row['Student Name'] || row['Full Name'] || `Member ${index + 1}`;
-                const department = row.Department || row.Dept || row['Department Name'] || 'Unknown';
-                const email = row.Email || row['Email Address'] || row['E-mail'] || 'N/A';
-                const id = row.ID || row['Student ID'] || row['Member ID'] || `RC${String(index + 1).padStart(4, '0')}`;
+            if (lines.length < 2) {
+                return [];
+            }
+            
+            // Try to detect headers
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            console.log('CSV Headers:', headers);
+            
+            const members = [];
+            
+            // Process data rows
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i];
+                const values = parseCSVLine(line);
                 
-                return {
-                    id,
-                    name,
-                    department: department.toUpperCase(),
-                    email
-                };
-            }).filter(member => member.name && member.name !== 'Member');
+                if (values.length === 0) continue;
+                
+                // Map values to fields based on header positions
+                // This is a flexible approach that tries to find the right columns
+                const name = findValueByPattern(values, headers, ['name', 'student', 'full']);
+                const id = findValueByPattern(values, headers, ['id', 'studentid', 'roll']);
+                const department = findValueByPattern(values, headers, ['department', 'dept', 'program']);
+                const email = findValueByPattern(values, headers, ['email', 'mail']);
+                
+                // Only add if we have at least a name
+                if (name && name !== 'Name' && name !== 'Student Name') {
+                    members.push({
+                        id: id || `RC${String(members.length + 1).padStart(4, '0')}`,
+                        name: name,
+                        department: (department || 'Unknown').toUpperCase(),
+                        email: email || 'N/A'
+                    });
+                }
+            }
+            
+            return members;
+        }
+        
+        // Helper function to parse a CSV line considering quoted values
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim().replace(/"/g, ''));
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            // Add the last field
+            result.push(current.trim().replace(/"/g, ''));
+            
+            return result;
+        }
+        
+        // Helper function to find value by header pattern
+        function findValueByPattern(values, headers, patterns) {
+            for (const pattern of patterns) {
+                const index = headers.findIndex(h => 
+                    h.toLowerCase().includes(pattern.toLowerCase())
+                );
+                
+                if (index !== -1 && index < values.length && values[index]) {
+                    return values[index];
+                }
+            }
+            
+            // If no pattern match, try to find any non-empty value
+            for (let i = 0; i < Math.min(values.length, headers.length); i++) {
+                if (values[i] && values[i].trim() !== '') {
+                    return values[i];
+                }
+            }
+            
+            return null;
         }
         
         // Fallback data in case the Google Sheets fetch fails
@@ -658,16 +737,10 @@
             return [
                 { id: "RC2023001", name: "Rahim Ahmed", department: "CSE", email: "rahim.ahmed@diu.edu.bd" },
                 { id: "RC2023002", name: "Fatima Begum", department: "EEE", email: "fatima.begum@diu.edu.bd" },
-                { id: "RC2023003", name: "Karim Uddin", department: "ME", email: "karim.uddin@diu.edu.bd" },
+                { id: "RC2023003", name: "Karim Uddin", department: "SWE", email: "karim.uddin@diu.edu.bd" },
                 { id: "RC2023004", name: "Ayesha Khan", department: "CSE", email: "ayesha.khan@diu.edu.bd" },
-                { id: "RC2023005", name: "Shahriar Hossain", department: "CE", email: "shahriar.hossain@diu.edu.bd" },
-                { id: "RC2023006", name: "Tasnim Rahman", department: "EEE", email: "tasnim.rahman@diu.edu.bd" },
-                { id: "RC2023007", name: "Nafisa Islam", department: "CSE", email: "nafisa.islam@diu.edu.bd" },
-                { id: "RC2023008", name: "Rafiqul Islam", department: "ME", email: "rafiqul.islam@diu.edu.bd" },
-                { id: "RC2023009", name: "Sabrina Akter", department: "CSE", email: "sabrina.akter@diu.edu.bd" },
-                { id: "RC2023010", name: "Jamil Hasan", department: "EEE", email: "jamil.hasan@diu.edu.bd" },
-                { id: "RC2023011", name: "Farhana Yeasmin", department: "CE", email: "farhana.yeasmin@diu.edu.bd" },
-                { id: "RC2023012", name: "Arif Hossain", department: "ME", email: "arif.hossain@diu.edu.bd" }
+                { id: "RC2023005", name: "Shahriar Hossain", department: "BBA", email: "shahriar.hossain@diu.edu.bd" },
+                { id: "RC2023006", name: "Tasnim Rahman", department: "EEE", email: "tasnim.rahman@diu.edu.bd" }
             ];
         }
         
@@ -694,10 +767,10 @@
                 const deptColors = {
                     'CSE': '#4169E1',
                     'EEE': '#4B0082',
-                    'ME': '#00CED1',
-                    'CE': '#4682B4',
-                    'SWE': '#5F9EA0',
-                    'CIS': '#6A5ACD'
+                    'SWE': '#00CED1',
+                    'BBA': '#4682B4',
+                    'CIS': '#6A5ACD',
+                    'ME': '#5F9EA0'
                 };
                 
                 const avatarColor = deptColors[member.department] || '#4169E1';
@@ -737,15 +810,20 @@
             });
             
             generateMemberCards(filteredMembers);
+            
+            // Update data info
+            const dataInfo = document.getElementById('dataInfo');
+            if (filteredMembers.length !== allMembers.length) {
+                dataInfo.textContent = `Showing ${filteredMembers.length} of ${allMembers.length} members`;
+            } else {
+                dataInfo.textContent = `Showing all ${allMembers.length} members`;
+            }
         }
 
         // Initialize the page
         document.addEventListener('DOMContentLoaded', async () => {
             // Fetch data from Google Sheets
             await fetchMemberData();
-            
-            // Store the member data globally for filtering
-            // This will be populated after the data is fetched
             
             // Add event listeners
             document.getElementById('searchInput').addEventListener('input', filterMembers);
@@ -759,22 +837,6 @@
                 });
             });
         });
-        
-        // Update the processMemberData function to store data globally
-        const originalProcessMemberData = processMemberData;
-        processMemberData = function(rawData) {
-            const processed = originalProcessMemberData(rawData);
-            window.memberData = processed;
-            return processed;
-        };
-        
-        // Also update the fallback function
-        const originalGetFallbackMembers = getFallbackMembers;
-        getFallbackMembers = function() {
-            const fallback = originalGetFallbackMembers();
-            window.memberData = fallback;
-            return fallback;
-        };
     </script>
 </body>
 </html>
