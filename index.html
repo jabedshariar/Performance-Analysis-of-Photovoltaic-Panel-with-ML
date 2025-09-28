@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DIU Robotics Club - Member Directory</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <style>
         :root {
             --cyan: #00FFFF;
@@ -306,6 +307,33 @@
             border-top: 1px solid #eee;
         }
         
+        /* Loading and Error States */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--royal-blue);
+        }
+        
+        .loading i {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            animation: spin 2s linear infinite;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #e74c3c;
+            background-color: #ffeaea;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
         /* Footer */
         footer {
             background: linear-gradient(135deg, var(--indigo), var(--black));
@@ -476,6 +504,14 @@
     <section class="members-section">
         <div class="container">
             <h2 class="section-title">Our Members</h2>
+            <div id="loadingState" class="loading">
+                <i class="fas fa-robot"></i>
+                <p>Loading member data from Google Sheets...</p>
+            </div>
+            <div id="errorState" class="error" style="display: none;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Error loading data. Please try again later.</p>
+            </div>
             <div class="members-grid" id="membersGrid">
                 <!-- Member cards will be dynamically generated here -->
             </div>
@@ -524,26 +560,131 @@
     </footer>
 
     <script>
-        // Sample member data (in a real implementation, this would come from the Google Sheets API)
-        const members = [
-            { id: "RC2023001", name: "Rahim Ahmed", department: "CSE", email: "rahim.ahmed@diu.edu.bd" },
-            { id: "RC2023002", name: "Fatima Begum", department: "EEE", email: "fatima.begum@diu.edu.bd" },
-            { id: "RC2023003", name: "Karim Uddin", department: "ME", email: "karim.uddin@diu.edu.bd" },
-            { id: "RC2023004", name: "Ayesha Khan", department: "CSE", email: "ayesha.khan@diu.edu.bd" },
-            { id: "RC2023005", name: "Shahriar Hossain", department: "CE", email: "shahriar.hossain@diu.edu.bd" },
-            { id: "RC2023006", name: "Tasnim Rahman", department: "EEE", email: "tasnim.rahman@diu.edu.bd" },
-            { id: "RC2023007", name: "Nafisa Islam", department: "CSE", email: "nafisa.islam@diu.edu.bd" },
-            { id: "RC2023008", name: "Rafiqul Islam", department: "ME", email: "rafiqul.islam@diu.edu.bd" },
-            { id: "RC2023009", name: "Sabrina Akter", department: "CSE", email: "sabrina.akter@diu.edu.bd" },
-            { id: "RC2023010", name: "Jamil Hasan", department: "EEE", email: "jamil.hasan@diu.edu.bd" },
-            { id: "RC2023011", name: "Farhana Yeasmin", department: "CE", email: "farhana.yeasmin@diu.edu.bd" },
-            { id: "RC2023012", name: "Arif Hossain", department: "ME", email: "arif.hossain@diu.edu.bd" }
-        ];
-
+        // Google Sheets URL
+        const SHEET_URL = "https://docs.google.com/spreadsheets/u/3/d/e/2PACX-1vSlQNWxF-RzYyzRgHUF0bjpTHSXreykh4S_BIW-u_6Au6ge-V4B-e5547bfNNNYyw/pubhtml";
+        
+        // Function to extract CSV URL from the published HTML
+        function getCSVUrl() {
+            // For Google Sheets published as HTML, we need to get the CSV export URL
+            // This is a workaround since direct CSV export might not be available
+            // In a real implementation, you would publish the sheet as CSV
+            return "https://docs.google.com/spreadsheets/d/e/2PACX-1vSlQNWxF-RzYyzRgHUF0bjpTHSXreykh4S_BIW-u_6Au6ge-V4B-e5547bfNNNYyw/pub?output=csv";
+        }
+        
+        // Function to fetch and parse data from Google Sheets
+        async function fetchMemberData() {
+            const loadingElement = document.getElementById('loadingState');
+            const errorElement = document.getElementById('errorState');
+            const membersGrid = document.getElementById('membersGrid');
+            
+            try {
+                // Show loading state
+                loadingElement.style.display = 'block';
+                errorElement.style.display = 'none';
+                membersGrid.innerHTML = '';
+                
+                // Fetch data from Google Sheets CSV
+                const csvUrl = getCSVUrl();
+                const response = await fetch(csvUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch data: ${response.status}`);
+                }
+                
+                const csvText = await response.text();
+                
+                // Parse CSV data
+                Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        if (results.errors.length > 0) {
+                            console.warn('CSV parsing warnings:', results.errors);
+                        }
+                        
+                        // Process the data
+                        const members = processMemberData(results.data);
+                        
+                        // Generate member cards
+                        generateMemberCards(members);
+                        
+                        // Hide loading state
+                        loadingElement.style.display = 'none';
+                    },
+                    error: function(error) {
+                        throw new Error(`CSV parsing error: ${error.message}`);
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error fetching member data:', error);
+                loadingElement.style.display = 'none';
+                errorElement.style.display = 'block';
+                
+                // Fallback to sample data if fetch fails
+                const fallbackMembers = getFallbackMembers();
+                generateMemberCards(fallbackMembers);
+                errorElement.innerHTML = `
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Could not load live data. Showing sample data instead.</p>
+                    <p><small>Error: ${error.message}</small></p>
+                `;
+            }
+        }
+        
+        // Function to process raw data from Google Sheets
+        function processMemberData(rawData) {
+            // This function will map the Google Sheets columns to our expected format
+            // You may need to adjust this based on the actual column names in your sheet
+            
+            return rawData.map((row, index) => {
+                // Try to extract data based on common column name patterns
+                const name = row.Name || row['Student Name'] || row['Full Name'] || `Member ${index + 1}`;
+                const department = row.Department || row.Dept || row['Department Name'] || 'Unknown';
+                const email = row.Email || row['Email Address'] || row['E-mail'] || 'N/A';
+                const id = row.ID || row['Student ID'] || row['Member ID'] || `RC${String(index + 1).padStart(4, '0')}`;
+                
+                return {
+                    id,
+                    name,
+                    department: department.toUpperCase(),
+                    email
+                };
+            }).filter(member => member.name && member.name !== 'Member');
+        }
+        
+        // Fallback data in case the Google Sheets fetch fails
+        function getFallbackMembers() {
+            return [
+                { id: "RC2023001", name: "Rahim Ahmed", department: "CSE", email: "rahim.ahmed@diu.edu.bd" },
+                { id: "RC2023002", name: "Fatima Begum", department: "EEE", email: "fatima.begum@diu.edu.bd" },
+                { id: "RC2023003", name: "Karim Uddin", department: "ME", email: "karim.uddin@diu.edu.bd" },
+                { id: "RC2023004", name: "Ayesha Khan", department: "CSE", email: "ayesha.khan@diu.edu.bd" },
+                { id: "RC2023005", name: "Shahriar Hossain", department: "CE", email: "shahriar.hossain@diu.edu.bd" },
+                { id: "RC2023006", name: "Tasnim Rahman", department: "EEE", email: "tasnim.rahman@diu.edu.bd" },
+                { id: "RC2023007", name: "Nafisa Islam", department: "CSE", email: "nafisa.islam@diu.edu.bd" },
+                { id: "RC2023008", name: "Rafiqul Islam", department: "ME", email: "rafiqul.islam@diu.edu.bd" },
+                { id: "RC2023009", name: "Sabrina Akter", department: "CSE", email: "sabrina.akter@diu.edu.bd" },
+                { id: "RC2023010", name: "Jamil Hasan", department: "EEE", email: "jamil.hasan@diu.edu.bd" },
+                { id: "RC2023011", name: "Farhana Yeasmin", department: "CE", email: "farhana.yeasmin@diu.edu.bd" },
+                { id: "RC2023012", name: "Arif Hossain", department: "ME", email: "arif.hossain@diu.edu.bd" }
+            ];
+        }
+        
         // Function to generate member cards
         function generateMemberCards(memberList) {
             const membersGrid = document.getElementById('membersGrid');
             membersGrid.innerHTML = '';
+            
+            if (memberList.length === 0) {
+                membersGrid.innerHTML = `
+                    <div class="error" style="grid-column: 1 / -1;">
+                        <i class="fas fa-robot"></i>
+                        <p>No members found matching your search criteria.</p>
+                    </div>
+                `;
+                return;
+            }
             
             memberList.forEach(member => {
                 const card = document.createElement('div');
@@ -554,7 +695,9 @@
                     'CSE': '#4169E1',
                     'EEE': '#4B0082',
                     'ME': '#00CED1',
-                    'CE': '#4682B4'
+                    'CE': '#4682B4',
+                    'SWE': '#5F9EA0',
+                    'CIS': '#6A5ACD'
                 };
                 
                 const avatarColor = deptColors[member.department] || '#4169E1';
@@ -580,7 +723,10 @@
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
             
-            let filteredMembers = members.filter(member => {
+            // Get all members from the data we fetched
+            const allMembers = window.memberData || [];
+            
+            let filteredMembers = allMembers.filter(member => {
                 const matchesSearch = member.name.toLowerCase().includes(searchTerm) || 
                                      member.department.toLowerCase().includes(searchTerm) || 
                                      member.email.toLowerCase().includes(searchTerm);
@@ -594,8 +740,12 @@
         }
 
         // Initialize the page
-        document.addEventListener('DOMContentLoaded', () => {
-            generateMemberCards(members);
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Fetch data from Google Sheets
+            await fetchMemberData();
+            
+            // Store the member data globally for filtering
+            // This will be populated after the data is fetched
             
             // Add event listeners
             document.getElementById('searchInput').addEventListener('input', filterMembers);
@@ -609,6 +759,22 @@
                 });
             });
         });
+        
+        // Update the processMemberData function to store data globally
+        const originalProcessMemberData = processMemberData;
+        processMemberData = function(rawData) {
+            const processed = originalProcessMemberData(rawData);
+            window.memberData = processed;
+            return processed;
+        };
+        
+        // Also update the fallback function
+        const originalGetFallbackMembers = getFallbackMembers;
+        getFallbackMembers = function() {
+            const fallback = originalGetFallbackMembers();
+            window.memberData = fallback;
+            return fallback;
+        };
     </script>
 </body>
 </html>
