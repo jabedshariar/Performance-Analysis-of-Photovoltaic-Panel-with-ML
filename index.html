@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIU Robotics Club - Member Directory</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --cyan: #00FFFF;
+            --sky-blue: #87CEEB;
+            --royal-blue: #4169E1;
+            --indigo: #4B0082;
+            --black: #000000;
+            --light-bg: #f0f8ff;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--light-bg);
+            color: var(--black);
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background: linear-gradient(135deg, var(--royal-blue), var(--indigo));
+            color: white;
+            padding: 20px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo img {
+            height: 50px;
+        }
+        
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .logo-text h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        
+        .logo-text span {
+            color: var(--cyan);
+        }
+        
+        .logo-text .subtitle {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        /* Animation Elements */
+        .robot-animation {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 100%;
+            opacity: 0.2;
+            z-index: 1;
+        }
+        
+        .robot-body {
+            position: absolute;
+            top: 50%;
+            right: 50px;
+            width: 80px;
+            height: 100px;
+            background-color: var(--cyan);
+            border-radius: 40% 40% 0 0;
+            transform: translateY(-50%);
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .robot-head {
+            position: absolute;
+            top: 30%;
+            right: 60px;
+            width: 60px;
+            height: 60px;
+            background-color: var(--sky-blue);
+            border-radius: 50%;
+            animation: rotate 10s linear infinite;
+        }
+        
+        .robot-eye {
+            position: absolute;
+            top: 20px;
+            width: 12px;
+            height: 12px;
+            background-color: var(--indigo);
+            border-radius: 50%;
+        }
+        
+        .robot-eye.left {
+            left: 15px;
+        }
+        
+        .robot-eye.right {
+            right: 15px;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(-50%); }
+            50% { transform: translateY(-60%); }
+        }
+        
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Search Section */
+        .search-section {
+            padding: 30px 0;
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .search-box {
+            display: flex;
+            max-width: 600px;
+            margin: 0 auto;
+            box-shadow: 0 4px 12px rgba(65, 105, 225, 0.2);
+            border-radius: 50px;
+            overflow: hidden;
+        }
+        
+        .search-box input {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            outline: none;
+            font-size: 1rem;
+            background-color: white;
+        }
+        
+        .search-box button {
+            padding: 0 25px;
+            background: linear-gradient(to right, var(--royal-blue), var(--indigo));
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .search-box button:hover {
+            background: linear-gradient(to right, var(--indigo), var(--royal-blue));
+        }
+        
+        /* Filters */
+        .filters {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 8px 20px;
+            background-color: white;
+            border: 1px solid var(--sky-blue);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        
+        .filter-btn.active, .filter-btn:hover {
+            background-color: var(--royal-blue);
+            color: white;
+            border-color: var(--royal-blue);
+        }
+        
+        /* Members Grid */
+        .members-section {
+            padding: 40px 0;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--indigo);
+            position: relative;
+        }
+        
+        .section-title:after {
+            content: '';
+            display: block;
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(to right, var(--cyan), var(--royal-blue));
+            margin: 10px auto;
+        }
+        
+        .members-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+        }
+        
+        .member-card {
+            background-color: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .member-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(65, 105, 225, 0.15);
+        }
+        
+        .member-avatar {
+            height: 180px;
+            background: linear-gradient(135deg, var(--sky-blue), var(--royal-blue));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .member-avatar i {
+            font-size: 5rem;
+            color: white;
+            opacity: 0.9;
+        }
+        
+        .member-info {
+            padding: 20px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .member-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--indigo);
+        }
+        
+        .member-department {
+            color: var(--royal-blue);
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        
+        .member-email {
+            color: var(--black);
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            word-break: break-all;
+        }
+        
+        .member-id {
+            margin-top: auto;
+            font-size: 0.8rem;
+            color: #666;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+        }
+        
+        /* Footer */
+        footer {
+            background: linear-gradient(135deg, var(--indigo), var(--black));
+            color: white;
+            padding: 40px 0 20px;
+        }
+        
+        .footer-content {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .footer-logo {
+            flex: 1;
+            min-width: 250px;
+        }
+        
+        .footer-logo img {
+            height: 60px;
+            margin-bottom: 15px;
+        }
+        
+        .footer-links {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .footer-links h3 {
+            margin-bottom: 20px;
+            color: var(--cyan);
+            position: relative;
+            padding-bottom: 10px;
+        }
+        
+        .footer-links h3:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 40px;
+            height: 2px;
+            background-color: var(--cyan);
+        }
+        
+        .footer-links ul {
+            list-style: none;
+        }
+        
+        .footer-links li {
+            margin-bottom: 10px;
+        }
+        
+        .footer-links a {
+            color: #ddd;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .footer-links a:hover {
+            color: var(--cyan);
+        }
+        
+        .copyright {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .logo-container {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .members-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+            
+            .footer-content {
+                flex-direction: column;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .members-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .logo-text h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo-container">
+                    <div class="logo">
+                        <!-- DIU Robotics Club Logo (placeholder) -->
+                        <svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="25" cy="25" r="20" fill="#4169E1"/>
+                            <circle cx="25" cy="25" r="15" fill="#87CEEB"/>
+                            <rect x="15" y="15" width="20" height="20" rx="5" fill="#4B0082"/>
+                            <circle cx="20" cy="20" r="3" fill="#00FFFF"/>
+                            <circle cx="30" cy="20" r="3" fill="#00FFFF"/>
+                            <path d="M20 30 Q25 35 30 30" stroke="#00FFFF" stroke-width="2" fill="none"/>
+                        </svg>
+                        <div class="logo-text">
+                            <h1>DIU <span>Robotics Club</span></h1>
+                            <div class="subtitle">Daffodil International University</div>
+                        </div>
+                    </div>
+                    <!-- DIU Logo (placeholder) -->
+                    <div class="logo">
+                        <svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="25" cy="25" r="20" fill="#4B0082"/>
+                            <path d="M15 15 L35 15 L35 35 L15 35 Z" fill="#4169E1"/>
+                            <circle cx="25" cy="25" r="10" fill="#87CEEB"/>
+                            <text x="25" y="30" text-anchor="middle" fill="#00FFFF" font-family="Arial" font-size="12">DIU</text>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Robot Animation -->
+        <div class="robot-animation">
+            <div class="robot-body"></div>
+            <div class="robot-head">
+                <div class="robot-eye left"></div>
+                <div class="robot-eye right"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Search Section -->
+    <section class="search-section">
+        <div class="container">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search by name, department, or email...">
+                <button id="searchButton"><i class="fas fa-search"></i></button>
+            </div>
+            <div class="filters">
+                <button class="filter-btn active" data-filter="all">All Members</button>
+                <button class="filter-btn" data-filter="CSE">CSE</button>
+                <button class="filter-btn" data-filter="EEE">EEE</button>
+                <button class="filter-btn" data-filter="ME">ME</button>
+                <button class="filter-btn" data-filter="CE">CE</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Members Section -->
+    <section class="members-section">
+        <div class="container">
+            <h2 class="section-title">Our Members</h2>
+            <div class="members-grid" id="membersGrid">
+                <!-- Member cards will be dynamically generated here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <!-- DIU Robotics Club Logo -->
+                    <svg width="60" height="60" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="25" cy="25" r="20" fill="#4169E1"/>
+                        <circle cx="25" cy="25" r="15" fill="#87CEEB"/>
+                        <rect x="15" y="15" width="20" height="20" rx="5" fill="#4B0082"/>
+                        <circle cx="20" cy="20" r="3" fill="#00FFFF"/>
+                        <circle cx="30" cy="20" r="3" fill="#00FFFF"/>
+                        <path d="M20 30 Q25 35 30 30" stroke="#00FFFF" stroke-width="2" fill="none"/>
+                    </svg>
+                    <p>DIU Robotics Club is a platform for students interested in robotics and automation to learn, innovate and collaborate.</p>
+                </div>
+                <div class="footer-links">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="#">Home</a></li>
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Projects</a></li>
+                        <li><a href="#">Events</a></li>
+                        <li><a href="#">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h3>Contact Info</h3>
+                    <ul>
+                        <li><i class="fas fa-map-marker-alt"></i> Daffodil International University</li>
+                        <li><i class="fas fa-phone"></i> +880 1234-567890</li>
+                        <li><i class="fas fa-envelope"></i> robotics@diu.edu.bd</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                &copy; 2023 DIU Robotics Club. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Sample member data (in a real implementation, this would come from the Google Sheets API)
+        const members = [
+            { id: "RC2023001", name: "Rahim Ahmed", department: "CSE", email: "rahim.ahmed@diu.edu.bd" },
+            { id: "RC2023002", name: "Fatima Begum", department: "EEE", email: "fatima.begum@diu.edu.bd" },
+            { id: "RC2023003", name: "Karim Uddin", department: "ME", email: "karim.uddin@diu.edu.bd" },
+            { id: "RC2023004", name: "Ayesha Khan", department: "CSE", email: "ayesha.khan@diu.edu.bd" },
+            { id: "RC2023005", name: "Shahriar Hossain", department: "CE", email: "shahriar.hossain@diu.edu.bd" },
+            { id: "RC2023006", name: "Tasnim Rahman", department: "EEE", email: "tasnim.rahman@diu.edu.bd" },
+            { id: "RC2023007", name: "Nafisa Islam", department: "CSE", email: "nafisa.islam@diu.edu.bd" },
+            { id: "RC2023008", name: "Rafiqul Islam", department: "ME", email: "rafiqul.islam@diu.edu.bd" },
+            { id: "RC2023009", name: "Sabrina Akter", department: "CSE", email: "sabrina.akter@diu.edu.bd" },
+            { id: "RC2023010", name: "Jamil Hasan", department: "EEE", email: "jamil.hasan@diu.edu.bd" },
+            { id: "RC2023011", name: "Farhana Yeasmin", department: "CE", email: "farhana.yeasmin@diu.edu.bd" },
+            { id: "RC2023012", name: "Arif Hossain", department: "ME", email: "arif.hossain@diu.edu.bd" }
+        ];
+
+        // Function to generate member cards
+        function generateMemberCards(memberList) {
+            const membersGrid = document.getElementById('membersGrid');
+            membersGrid.innerHTML = '';
+            
+            memberList.forEach(member => {
+                const card = document.createElement('div');
+                card.className = 'member-card';
+                
+                // Generate a unique color based on department
+                const deptColors = {
+                    'CSE': '#4169E1',
+                    'EEE': '#4B0082',
+                    'ME': '#00CED1',
+                    'CE': '#4682B4'
+                };
+                
+                const avatarColor = deptColors[member.department] || '#4169E1';
+                
+                card.innerHTML = `
+                    <div class="member-avatar" style="background: linear-gradient(135deg, ${avatarColor}, ${avatarColor}80)">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="member-info">
+                        <h3 class="member-name">${member.name}</h3>
+                        <div class="member-department">${member.department}</div>
+                        <div class="member-email">${member.email}</div>
+                        <div class="member-id">ID: ${member.id}</div>
+                    </div>
+                `;
+                
+                membersGrid.appendChild(card);
+            });
+        }
+
+        // Function to filter members
+        function filterMembers() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
+            
+            let filteredMembers = members.filter(member => {
+                const matchesSearch = member.name.toLowerCase().includes(searchTerm) || 
+                                     member.department.toLowerCase().includes(searchTerm) || 
+                                     member.email.toLowerCase().includes(searchTerm);
+                
+                const matchesFilter = activeFilter === 'all' || member.department === activeFilter;
+                
+                return matchesSearch && matchesFilter;
+            });
+            
+            generateMemberCards(filteredMembers);
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', () => {
+            generateMemberCards(members);
+            
+            // Add event listeners
+            document.getElementById('searchInput').addEventListener('input', filterMembers);
+            document.getElementById('searchButton').addEventListener('click', filterMembers);
+            
+            document.querySelectorAll('.filter-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    filterMembers();
+                });
+            });
+        });
+    </script>
+</body>
+</html>
